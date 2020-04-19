@@ -22,7 +22,7 @@ The task here is to design and implement an alogrithm that merges all sorted chu
 
 ## Other possible improvements
 
-- If values **do not** satisfy uniform distribution, we could use **binary search** algorithm to determine the bounds of each partition (to make them close in length). This costs O(logn) more times of I/O read for each value.  
+- If values **do not** satisfy uniform distribution, we could use **binary search** algorithm to determine the bounds of each *partition* (making them close in length so that they could be loaded into RAM). This costs O(logn) more times of I/O for each value.  
 
 ## Testing & Performance Analysis
 
