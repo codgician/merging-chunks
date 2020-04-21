@@ -1,5 +1,7 @@
 use std::fs::*;
 use std::io::*;
+use std::option::*;
+use std::str::from_utf8;
 use std::path::Path;
 
 mod sorter;
@@ -13,37 +15,55 @@ pub fn merge_chunks(chunk_num: usize, part_exp: usize) -> Result<()> {
         remove_file("result.txt")?;
     }
 
+    let mut chunk_readers: Vec<BufReader<std::fs::File>> = Vec::new();
+    chunk_readers.reserve_exact(chunk_num);
+    for i in 0 .. chunk_num {
+        chunk_readers.push(BufReader::new(File::open(i.to_string() + ".in").unwrap()));
+    }
+
+    let mut rem: Vec<Option<u64>> = vec![None; chunk_num];
+
     for i in 0 .. (1u64 << part_exp) {
         let lb = (1u64 << (64 - part_exp)) * (i as u64);
-        let ub = if lb == 0 { (1u64 << (64 - part_exp)) - 1 } else { lb - 1 + (1u64 << (64 - part_exp)) };
+        let ub = if i == 0 { (1u64 << (64 - part_exp)) - 1 } else { lb - 1 + (1u64 << (64 - part_exp)) };
 
         let mut vec: Vec<u64> = Vec::new();
-        read_chunks(&mut vec, chunk_num, lb, ub)?;
+
+        for j in 0 .. chunk_num {
+            match rem[j] {
+                Some(val) => if val <= ub { vec.push(val); } else { continue; }, 
+                None => (),
+            }
+
+            rem[j] = read_chunk(&mut vec, &mut chunk_readers[j], ub);
+        }        
         sorter::sort(&mut vec);
-        write_result(& vec)?;
+        write_result(&vec)?;
     }
 
     Ok(())
 }
 
-fn read_chunks(vec: &mut Vec<u64>, chunk_num: usize, lb: u64, ub: u64) -> Result<()> {
-    vec.clear();
+fn read_chunk(vec: &mut Vec<u64>, reader: &mut BufReader<std::fs::File>, ub: u64) -> Option<u64> {
+    loop {
+        let mut cur: Vec<u8> = Vec::new();
+        let len = reader.read_until(b' ', &mut cur).expect("read chunk failed");
+    
+        if len == 0 {
+            break;
+        }
 
-    for i in 0 .. chunk_num {
-        let file = File::open(i.to_string() + ".in")?;
-        let mut reader = BufReader::new(file);
+        cur.pop();
+        let cur: u64 = from_utf8(&cur).unwrap().parse().expect("not an u64");
 
-        let mut inputs = String::new();
-        reader.read_to_string(&mut inputs)?;
-
-        let numbers: Vec<u64> = inputs.split_whitespace()
-                            .map(|x| x.parse::<u64>().expect("not an u64"))
-                            .filter(|&x| x >= lb && x <= ub)
-                            .collect();
-        vec.extend(&numbers);
+        if cur <= ub {
+            vec.push(cur);
+        } else {
+            return Some(cur);
+        }
     }
 
-    Ok(())
+    None
 }
 
 fn write_result(vec: & Vec<u64>) -> Result<()> {
@@ -127,7 +147,6 @@ mod tests {
 
         for i in 1 .. v.len() {
             if v[i - 1] > v[i] {
-                println!("last = {}, next = {}", v[i - 1], v[i]);
                 return false;
             }
         }
@@ -144,6 +163,6 @@ mod tests {
 
     #[test]
     fn merger_should_work_for_small_cases() {
-        do_test(100, 100);
+        do_test(1000, 1000);
     }
 }
