@@ -36,8 +36,8 @@ It is impossible to load and process everything in RAM, making Disk I/O a highly
   - Stop immediately if a value larger than the upper bound of current *partition* is read (this value will be cached in RAM). This guarantee that every value will only be read O(1) times. 
 - Another equivalent way to implement the filtering step is to first create a file for each *partition*, then iterate over all *chunks*, for every value we figure out which *partition* it should be in and we append it to the end of the corresponding file.
   - **Pros**: Compared to the algorithm above, for partitions, we no longer need to cache values into RAM. Therefore, it could handle scenarios where the number of chunks is relatively huge.
-  - **Cons**: When the data set is relatively small, this algorithm introduces lots of random disk writes. However, since values satisfy uniform distribution, when the data set is huge, multiple consecutive values from the same *chunk* highly likely belongs to the same *partition*. With `BufWriter`, a buffered way to write, it might ease the loss of performance.
-  - **To be implemented**: When the data set is relatively small, we use the algorithm discussed before, otherwise use the algorithm discussed here.
+  - **Cons**: When the data set is relatively small, this algorithm introduces lots of random disk writes. However, since values satisfy uniform distribution, when the data set is huge, multiple consecutive values from the same *chunk* highly likely belong to the same *partition*. With `BufWriter`, a buffered way to write, it might ease the loss of performance.
+  - **Implemented**: When the data set is relatively small, we use the algorithm discussed before, otherwise use the algorithm discussed here.
 
 ### Furthermore...
 
