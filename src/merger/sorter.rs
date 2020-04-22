@@ -1,17 +1,23 @@
-
-extern crate rayon;
-
 use rayon::prelude::*;
 
+/*
+    Function that implements parallel sort for a vector
+    Currently using par_sort_unstable() from rayon crate, may implement one myself in future
+
+    @param v    vector to be sorted
+*/
 pub fn sort(v: &mut Vec<u64>) {
     v.par_sort_unstable();  
 }
 
+/*
+    Unit tests
+   
+    Test sort() against non-parallel sort
+*/
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    extern crate rand;
     use rand::distributions::{Distribution, Uniform};
 
     #[test]

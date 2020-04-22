@@ -15,6 +15,8 @@ Given `k` sorted `uint64` **chunks** (arrays) meeting following conditions:
 
 The task here is to design and implement an algorithm that merges all sorted chunks into one single sorted chunk. It is expected to take advantage of multi-core processors and perform well with no more than **16GiB** of RAM.
 
+In this implementation, `k` chunks are stored in disk files named `0.in`, `1.in` ... `(k - 1).in`. To make observing results easier, values are stored as strings and separated with SPACE. The program will produce a result file named `result.txt`.
+
 ## Main idea
 
 It is impossible to load and process everything in RAM, making Disk I/O a highly possible bottleneck when it comes to actual performance. Therefore, it is necessary to make trade-offs between complexity and I/O frequency. Since the codomain of the values is relatively limited (0 ~ 2^64 - 1), so my solution is to split the codomain into different partitions, process each partition separately and finally merge them. 
@@ -32,23 +34,22 @@ It is impossible to load and process everything in RAM, making Disk I/O a highly
 - In early commits, after analyzing using `perf`, I found that the bottleneck lies in frequent disk I/O:
   - Use `BufReader` to read chunks in a buffered way, which reduces the number of system calls and improves performance;
   - Stop immediately if a value larger than the upper bound of current *partition* is read (this value will be cached in RAM). This guarantee that every value will only be read O(1) times. 
+- Another equivalent way to implement the filtering step is to first create a file for each *partition*, then iterate over all *chunks*, for every value we figure out which *partition* it should be in and we append it to the end of the corresponding file.
+  - **Pros**: Compared to the algorithm above, for partitions, we no longer need to cache values into RAM. Therefore, it could handle scenarios where the number of chunks is relatively huge.
+  - **Cons**: When the data set is relatively small, this algorithm introduces lots of random disk writes. However, since values satisfy uniform distribution, when the data set is huge, multiple consecutive values from the same *chunk* highly likely belongs to the same *partition*. With `BufWriter`, a buffered way to write, it might ease the loss of performance.
+  - **To be implemented**: When the data set is relatively small, we use the algorithm discussed before, otherwise use the algorithm discussed here.
 
 ### Furthermore...
 
-- Another equivalent way to implement the filtering step is to first create a file for each *partition*, then iterate over all *chunks*, for every value we figure out which *partition* it should be in and we append it to the end of the according file.
-  - **Pros**: Compared to algorithm above, for partitions we no longer need to cache values into RAM. Therefore, it could handle scenarios where the number of chunks is relatively huge.
-  - **Cons**: When data set is relatively small, this algorithm introduces lots of random disk writes. However, since values satisfy uniform distribution, when the data set is huge, multiple consecutive values from the same *chunk* highly likely belongs to the same *partition*. With `BufWriter`, a buffered way to write, it might ease the loss of performance. Another point is that, in the last step we need to concatenate all files, which might introduce more I/O cost. 
-  - **To be implemented**: When the data set is relatively small, we use the algorithm discussed before, otherwise use the algorithm discussed here.
-
 - What if values **DOES NOT** satisfy uniform distribution?
-  - **Algorithm #1**: Following the idea above, we could use binary search to determine bounds of each *partition*. However it will introduce O(klogn) more I/O operations for each value, which might significantly impact actual performance.
-  - **Algorithm #2**: Take the idea behind merging two sorted arrays using two-pointer algorithm:
+  - **Algorithm #1**: Following the idea above, we could use binary search to determine bounds of each *partition*. However, it will introduce O(klogn) more I/O operations for each value, which might significantly impact actual performance.
+  - **Algorithm #2**: Take the idea behind merging two sorted arrays using the two-pointer algorithm:
     - **Steps**: 
       - Select a value for `s`, representing *block size*;
       - Maintain a min-heap of size `k * s` inside RAM;
       - For each *chunk*, take out first **s** values and insert them into the min-heap;
       - Maintain an array `num`, where `num[i]` represents the number of values held inside the min-heap. As for now, for each i, `num[i] = s`;
-      - Keep popping the top element of the min-heap and write it into result file. Denoting i as the index of partition where this element comes from, at the same time we check of `num[i] == 0`. If so, we insert the next s values from this partition into the min-heap;
+      - Keep popping the top element of the min-heap and write it into the result file. Denoting i as the index of the partition where this element comes from, at the same time we check of `num[i] == 0`. If so, we insert the next s values from this partition into the min-heap;
       - Keep going until the min-heap becomes empty.
     - **Analysis**: 
       - The idea behind *block size* `s` is to avoid highly fragmented random readings. However, if the number of chunks is huge, **s** has to be small (could be resolved using divide and conquer approach which costs another O(logn) in complexity);

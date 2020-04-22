@@ -1,6 +1,5 @@
-mod merger;
-
 use std::env;
+mod merger;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
