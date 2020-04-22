@@ -54,3 +54,19 @@ It is impossible to load and process everything in RAM, making Disk I/O a highly
     - **Analysis**: 
       - The idea behind *block size* `s` is to avoid highly fragmented random readings. However, if the number of chunks is huge, **s** has to be small (could be resolved using divide and conquer approach which costs another O(logn) in complexity);
       - It's hard to boost it using multi-threading (might involve complex lockings).
+
+## Usage
+
+First build it:
+
+```bash
+cargo build --release
+```
+
+Then create chunks under root directory of this project. Name them as `0.in`, `1.in`, ... `(k - 1).in`. Each of them contains multiple `unsigned int64` values separated by a single SPACE. Run the program using:
+
+```bash
+cargo run <number of chunks>
+```
+
+The result should be named as `result.txt` and created under the root directory of the project.
